@@ -1,0 +1,12 @@
+{
+  "name": "ExpenseIQ",
+  "short_name": "ExpenseIQ",
+  "description": "AI-powered personal finance dashboard",
+  "theme_color": "#e11d48",
+  "background_color": "#fdf8f6",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    { "src": "hero-bg.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
