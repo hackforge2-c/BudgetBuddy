@@ -1901,223 +1901,169 @@ Rules: Extract amount (convert words like "two hundred" to 200), guess category 
           <main className="main-content">
             {anomalyAlert&&<AnomalyBanner expense={anomalyAlert} onDismiss={()=>setAnomalyAlert(null)}/>}
 
-            {/* ═══ DASHBOARD ═══ */}
-            {activeTab==='dashboard'&&(<>
+            {/* ═══ CLEAN DASHBOARD ═══ */}
+            {activeTab==='dashboard'&&(
+              <div className="clean-dash">
 
-              {/* BANNER — TOP */}
-              <div className="dash-banner" style={{marginBottom:'18px'}}>
-                <img src="/hero-bg.png" alt="" className="dash-banner-img" onError={e=>{e.target.style.display='none';e.target.parentElement.style.background='linear-gradient(135deg,#0d1f50,#160d40)'}}/>
-                <div className="dash-banner-overlay"/>
-                <div className="dash-banner-content">
-                  <div className="dash-banner-text">
-                    <div className="dash-banner-title">Take Control of Your Finances</div>
-                    <div className="dash-banner-sub">Track your expenses, set budgets, and achieve your financial goals.</div>
-                  </div>
-                  <button className="dash-banner-btn" onClick={()=>setShowReports(true)}>Explore Reports →</button>
-                </div>
-              </div>
-
-              {/* STAT CARDS ROW */}
-              <div className="stat-row">
-                {[
-                  {icon:'📈',bg:'#3b1f6e',label:'Total Spent',   value:blurAmt(formatINR(totalSpent)),            sub:`${expenses.length} transactions`, pct:lastMoSpent>0?Math.round(((totalSpent-lastMoSpent)/lastMoSpent)*100):12,  pctUp:true},
-                  {icon:'💼',bg:'#1a3a5c',label:'This Month',    value:blurAmt(formatINR(monthlySpent)),           sub:`${Math.round(budgetPct)}% of budget`,     pct:5, pctUp:false, progress:true},
-                  {icon:'💰',bg:'#0d3d30',label:'Budget Left',   value:blurAmt(formatINR(Math.max(remaining,0))), sub:'Remaining',                               pct:15,pctUp:true},
-                  {icon:'🤝',bg:'#3d2a0a',label:'Owed To You',   value:blurAmt(formatINR(totalPending)),           sub:`${lentList.filter(l=>l.status!=='returned').length} people`, arrow:true, click:()=>setActiveTab('lent')},
-                ].map((s,i)=>(
-                  <div key={i} className="stat-card" onClick={s.click} style={s.click?{cursor:'pointer'}:{}}>
-                    <div className="stat-card-top">
-                      <div className="stat-card-icon" style={{background:s.bg}}>{s.icon}</div>
-                      {s.arrow&&<div className="stat-card-arrow">→</div>}
-                      {s.pct!==undefined&&<div className={`stat-pct ${s.pctUp?'up':'down'}`}>{s.pctUp?'↗':'↘'} {Math.abs(s.pct)}%</div>}
+                {/* HERO GREETING */}
+                <div className="clean-hero">
+                  <img src="/hero-bg.png" alt="" className="clean-hero-img" onError={e=>e.target.style.display='none'}/>
+                  <div className="clean-hero-overlay"/>
+                  <div className="clean-hero-content">
+                    <div className="clean-hero-greeting">
+                    {new Date().getHours()<12?'Good morning':new Date().getHours()<17?'Good afternoon':'Good evening'}, {user?.displayName||user?.email?.split('@')[0]||'there'}! 👋
                     </div>
-                    <div className="stat-card-label">{s.label}</div>
-                    <div className="stat-card-value">{s.value}</div>
-                    <div className="stat-card-sub">{s.sub}</div>
-                    {s.progress&&<div className="stat-progress"><div style={{width:`${Math.min(budgetPct,100)}%`,height:'100%',background:budgetStatus==='exceeded'?'#f87171':'#6366f1',borderRadius:'999px',transition:'width 0.6s'}}/></div>}
-                  </div>
-                ))}
-              </div>
-
-              {/* MAIN 3-COL GRID */}
-              <div className="dash-grid-3">
-
-                {/* COL 1 — Spending + Budget */}
-                <div className="dash-col">
-                  {/* Spending This Month — DONUT */}
-                  <div className="dash-card">
-                    <div className="dash-card-header">
-                      <div className="dash-card-title"><span>📂</span> Spending This Month</div>
-                      <div className="dash-card-meta">{new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'})} ▾</div>
-                    </div>
-                    {(()=>{
-                      const mc=Object.keys(CATEGORIES).map(cat=>({cat,cfg:CATEGORIES[cat],total:expenses.filter(e=>e.category===cat&&getMonth(e.date)===thisMonth()).reduce((s,e)=>s+e.amount,0)})).filter(c=>c.total>0).sort((a,b)=>b.total-a.total)
-                      if(!mc.length) return <div style={{textAlign:'center',padding:'24px',color:'#6a9bb8',fontSize:'13px'}}>No spending this month</div>
-                      const total=mc.reduce((s,c)=>s+c.total,0)
-                      const DONUT_COLORS=['#8b5cf6','#f97316','#06b6d4','#10b981','#f43f5e','#fbbf24','#6b7280']
-                      const r=52,cx=70,cy=70,circ=2*Math.PI*r;let off=0
-                      const slices=mc.slice(0,5).map((c,i)=>{const pct=c.total/total;const s={...c,pct,off,color:DONUT_COLORS[i],dash:pct*circ,gap:circ-pct*circ};off+=pct*circ;return s})
-                      return(
-                        <div className="donut-layout">
-                          <div className="donut-wrap">
-                            <svg width="140" height="140" viewBox="0 0 140 140">
-                              <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1a2744" strokeWidth="20"/>
-                              {slices.map((s,i)=><circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth="20" strokeDasharray={`${s.dash} ${s.gap}`} strokeDashoffset={-s.off+circ/4} style={{transition:'all 0.7s'}}/>)}
-                              <text x={cx} y={cy-6} textAnchor="middle" fontSize="13" fontWeight="800" fill="#e8f4f8" fontFamily="JetBrains Mono,monospace">{blurAmt(formatINR(total)).props?'₹••••':formatINR(total)}</text>
-                              <text x={cx} y={cy+10} textAnchor="middle" fontSize="9" fill="#6a9bb8" fontFamily="Plus Jakarta Sans,sans-serif">Total</text>
-                            </svg>
-                          </div>
-                          <div className="donut-legend">
-                            {slices.map((s,i)=>(
-                              <div key={i} className="donut-legend-row">
-                                <div style={{width:'10px',height:'10px',borderRadius:'50%',background:s.color,flexShrink:0}}/>
-                                <span style={{flex:1,fontSize:'12px',color:'#b2d8e8',fontWeight:600}}>{s.cfg.label}</span>
-                                <span style={{fontSize:'11px',color:s.color,fontWeight:700}}>{Math.round(s.pct*100)}%</span>
-                                <span style={{fontSize:'12px',fontFamily:'var(--font-mono)',color:'#e8f4f8',fontWeight:700,minWidth:'48px',textAlign:'right'}}>₹{s.total}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })()}
-                    <div className="dash-cat-total">
-                      <span style={{color:'#6a9bb8',fontSize:'13px',fontWeight:600}}>Total this month</span>
-                      <span style={{color:'#1de9b6',fontSize:'14px',fontWeight:800,fontFamily:'var(--font-mono)'}}>{blurAmt(formatINR(monthlySpent))}</span>
-                    </div>
-                  </div>
-
-                  {/* Monthly Budget */}
-                  <div className="dash-card">
-                    <div className="dash-card-header">
-                      <div className="dash-card-title"><span>🎯</span> Monthly Budget</div>
-                      <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                        <input className="budget-inline-input" type="number" value={budgetInput} onChange={e=>setBudgetInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleBudgetSet()} placeholder="10000"/>
-                        <button className="budget-set-btn" onClick={handleBudgetSet}>Set</button>
-                      </div>
-                    </div>
-                    <div className="budget-big-row">
-                      <div><div className="budget-big-val" style={{color:'#1de9b6'}}>{blurAmt(formatINR(monthlySpent))}</div><div className="budget-big-label">SPENT</div></div>
-                      <div style={{textAlign:'center'}}><div className="budget-big-val" style={{color:'#6366f1'}}>{Math.round(budgetPct)}%</div><div className="budget-big-label">USED</div></div>
-                      <div style={{textAlign:'right'}}><div className="budget-big-val" style={{color:remaining<0?'#f87171':'#1de9b6'}}>{blurAmt(formatINR(Math.abs(remaining)))}</div><div className="budget-big-label">LEFT</div></div>
-                    </div>
-                    <div className="budget-bar-outer"><div className="budget-bar-inner" style={{width:`${Math.min(budgetPct,100)}%`,background:budgetStatus==='exceeded'?'#f87171':budgetStatus==='warning'?'#fbbf24':'#1de9b6'}}/></div>
-                    <div className={`budget-status-pill ${budgetStatus}`}>{budgetStatus==='exceeded'?`🚨 Over by ${formatINR(Math.abs(remaining))}`:budgetStatus==='warning'?`⚠️ ${Math.round(100-budgetPct)}% left`:`✅ ${formatINR(remaining)} available`}</div>
-                    <div style={{display:'flex',gap:'8px',marginTop:'12px',flexWrap:'wrap'}}>
-                      <SalaryDetector expenses={expenses} budget={budget} onBudgetReset={()=>lsSet('bb_budget_reset_month',thisMonth())} showToast={showToast} addNotif={addNotif}/>
-                      <RecurringManager expenses={expenses} onAdd={fs.addExpense} showToast={showToast}/>
-                    </div>
+                    <div className="clean-hero-sub">Here's your financial snapshot for <strong>{new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</strong></div>
                   </div>
                 </div>
 
-                {/* COL 2 — Quick Add + Top Categories */}
-                <div className="dash-col">
-                  {/* Quick Add */}
-                  <div className="dash-card">
-                    <div className="dash-card-header">
-                      <div className="dash-card-title"><span>➕</span> Quick Add</div>
-                      <div style={{display:'flex',gap:'6px'}}>
+                {/* 4 STAT CARDS */}
+                <div className="clean-stats">
+                  {[
+                    {icon:'💸', label:'Total Spent',   value:blurAmt(formatINR(totalSpent)),            color:'#e11d48', bg:'rgba(225,29,72,0.1)'},
+                    {icon:'📅', label:'This Month',    value:blurAmt(formatINR(monthlySpent)),           color:'#6366f1', bg:'rgba(99,102,241,0.1)'},
+                    {icon:'💰', label:'Budget Left',   value:blurAmt(formatINR(Math.max(remaining,0))), color:remaining<0?'#f87171':'#1de9b6', bg:remaining<0?'rgba(248,113,113,0.1)':'rgba(29,233,182,0.1)'},
+                    {icon:'🤝', label:'Owed to You',   value:blurAmt(formatINR(totalPending)),           color:'#f59e0b', bg:'rgba(245,158,11,0.1)', click:()=>setActiveTab('lent')},
+                  ].map((s,i)=>(
+                    <div key={i} className="clean-stat" onClick={s.click} style={{cursor:s.click?'pointer':'default'}}>
+                      <div className="clean-stat-icon" style={{background:s.bg,color:s.color}}>{s.icon}</div>
+                      <div className="clean-stat-label">{s.label}</div>
+                      <div className="clean-stat-value" style={{color:s.color}}>{s.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* MAIN GRID — 2 col */}
+                <div className="clean-grid">
+
+                  {/* QUICK ADD */}
+                  <div className="clean-card">
+                    <div className="clean-card-title">
+                      <span>➕</span>
+                      {editingId ? 'Edit Expense' : 'Quick Add'}
+                      <div style={{marginLeft:'auto',display:'flex',gap:'8px'}}>
                         <ReceiptScanner onExpenseDetected={d=>setForm(f=>({...f,...d}))} showToast={showToast}/>
                         <VoiceInput onResult={handleVoiceResult} disabled={voiceParsing}/>
                       </div>
                     </div>
-                    {voiceParsing&&<div style={{fontSize:'11px',color:'#7c3aed',background:'rgba(124,58,237,0.08)',border:'1px solid rgba(124,58,237,0.2)',borderRadius:'8px',padding:'6px 10px',marginBottom:'8px'}}>🤖 Parsing...</div>}
-                    <div className="quick-amount-wrap">
-                      <span className="quick-amount-prefix">₹</span>
-                      <input className="quick-amount-input" type="number" placeholder="0" value={form.amount} onChange={e=>updForm('amount',e.target.value)} onKeyDown={e=>e.key==='Enter'&&(editingId?handleUpdate():handleAdd())}/>
-                    </div>
-                    {errors.amount&&<div style={{fontSize:'11px',color:'#f87171',marginBottom:'6px'}}>⚠ {errors.amount}</div>}
-                    <input className="quick-title-input" placeholder="What did you spend on?" value={form.title} onChange={e=>updForm('title',e.target.value)} onKeyDown={e=>e.key==='Enter'&&(editingId?handleUpdate():handleAdd())}/>
-                    {errors.title&&<div style={{fontSize:'11px',color:'#f87171',marginBottom:'6px'}}>⚠ {errors.title}</div>}
-                    {aiSuggested&&form.title&&<div className="classify-banner" style={{marginBottom:'8px'}}><span>{CATEGORIES[aiSuggested]?.emoji}</span><span className="classify-text">AI: <strong>{aiSuggested}</strong></span><button className="classify-accept" onClick={()=>{updForm('category',aiSuggested);setAiSuggested(null)}}>✓</button><button className="classify-dismiss" onClick={()=>setAiSuggested(null)}>✕</button></div>}
-                    <div className="quick-cat-pills">
-                      {Object.entries(CATEGORIES).map(([k,v])=><button key={k} className={`quick-cat-pill${form.category===k?' active':''}`} style={form.category===k?{background:v.bar,borderColor:v.bar,color:'#fff'}:{}} onClick={()=>updForm('category',k)}>{v.emoji} {k}</button>)}
-                    </div>
-                    <div style={{display:'flex',gap:'10px',marginBottom:'10px'}}>
-                      <div style={{flex:1}}><div style={{fontSize:'10px',fontWeight:700,color:'#6a9bb8',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>Date</div><input className="form-input" type="date" value={form.date} onChange={e=>updForm('date',e.target.value)} max={today()} style={{fontSize:'12px',padding:'7px 10px'}}/></div>
-                      <div style={{flex:1}}><div style={{fontSize:'10px',fontWeight:700,color:'#6a9bb8',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>Note</div><input className="form-input" placeholder="Optional..." value={form.note} onChange={e=>updForm('note',e.target.value)} style={{fontSize:'12px',padding:'7px 10px'}}/></div>
-                    </div>
-                    {editingId
-                      ?<div style={{display:'flex',gap:'8px'}}><button className="quick-add-btn" onClick={handleUpdate}>✅ Update</button><button className="btn btn-cancel" style={{flex:'0 0 80px',margin:0}} onClick={handleCancelEdit}>Cancel</button></div>
-                      :<button className="quick-add-btn" onClick={handleAdd}>+ Add Expense</button>}
-                  </div>
 
-                  {/* Top Categories */}
-                  <div className="dash-card">
-                    <div className="dash-card-header">
-                      <div className="dash-card-title"><span>🏆</span> Top Categories</div>
-                      <div className="dash-card-meta">This Month ▾</div>
+                    {/* Big amount */}
+                    <div className="clean-amount-wrap">
+                      <span className="clean-amount-prefix">₹</span>
+                      <input className="clean-amount-input" type="number" placeholder="0"
+                        value={form.amount} onChange={e=>updForm('amount',e.target.value)}
+                        onKeyDown={e=>e.key==='Enter'&&(editingId?handleUpdate():handleAdd())}/>
                     </div>
-                    {(()=>{
-                      const mc=Object.keys(CATEGORIES).map(cat=>({cat,cfg:CATEGORIES[cat],total:expenses.filter(e=>e.category===cat&&getMonth(e.date)===selectedMonth).reduce((s,e)=>s+e.amount,0)})).filter(c=>c.total>0).sort((a,b)=>b.total-a.total).slice(0,4)
-                      if(!mc.length) return <div style={{textAlign:'center',padding:'16px',color:'#6a9bb8',fontSize:'12px'}}>No spending this month</div>
-                      const mx=mc[0].total
-                      return mc.map((c,i)=>(
-                        <div key={i} className="top-cat-row">
-                          <div className="top-cat-icon" style={{background:c.cfg.bar+'22'}}>{c.cfg.emoji}</div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
-                              <span style={{fontSize:'13px',fontWeight:700,color:'#b2d8e8'}}>{c.cfg.label}</span>
-                              <span style={{fontSize:'11px',fontWeight:700,color:c.cfg.bar}}>{Math.round((c.total/monthlySpent)*100)}%</span>
-                            </div>
-                            <div style={{height:'5px',background:'rgba(255,255,255,0.06)',borderRadius:'999px',overflow:'hidden'}}><div style={{width:`${(c.total/mx)*100}%`,height:'100%',background:c.cfg.bar,borderRadius:'999px',transition:'width 0.7s'}}/></div>
-                          </div>
-                          <div style={{fontFamily:'var(--font-mono)',fontSize:'13px',fontWeight:800,color:'#f87171',minWidth:'48px',textAlign:'right'}}>-{blurAmt(formatINR(c.total))}</div>
-                        </div>
-                      ))
-                    })()}
-                    <button className="view-all-btn" onClick={()=>setShowReports(true)}>View Full Report →</button>
-                  </div>
-                </div>
+                    {errors.amount&&<div className="clean-error">⚠ {errors.amount}</div>}
 
-                {/* COL 3 — Transactions */}
-                <div className="dash-col">
-                  <div className="dash-card" style={{flex:1}}>
-                    <div className="dash-card-header">
-                      <div className="dash-card-title"><span>📋</span> Transactions</div>
-                      <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
-                        <div style={{position:'relative'}}><span style={{position:'absolute',left:'8px',top:'50%',transform:'translateY(-50%)',fontSize:'12px'}}>🔍</span><input style={{background:'#0a1e32',border:'1px solid rgba(29,233,182,0.15)',borderRadius:'7px',padding:'6px 8px 6px 26px',color:'#e8f4f8',fontSize:'11px',outline:'none',width:'100px'}} placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
-                        <select style={{background:'#0a1e32',border:'1px solid rgba(29,233,182,0.15)',borderRadius:'7px',padding:'6px 8px',color:'#e8f4f8',fontSize:'11px',outline:'none',cursor:'pointer'}} value={sort} onChange={e=>setSort(e.target.value)}><option value="date-desc">Latest</option><option value="date-asc">Oldest</option><option value="amount-desc">Highest</option><option value="amount-asc">Lowest</option></select>
+                    {/* Title */}
+                    <input className="clean-title-input" placeholder="What did you spend on?"
+                      value={form.title} onChange={e=>updForm('title',e.target.value)}
+                      onKeyDown={e=>e.key==='Enter'&&(editingId?handleUpdate():handleAdd())}/>
+                    {errors.title&&<div className="clean-error">⚠ {errors.title}</div>}
+
+                    {/* Category pills */}
+                    <div className="clean-cats">
+                      {Object.entries(CATEGORIES).map(([k,v])=>(
+                        <button key={k} className={`clean-cat${form.category===k?' active':''}`}
+                          style={form.category===k?{background:v.bar,borderColor:v.bar,color:'#fff'}:{}}
+                          onClick={()=>updForm('category',k)}>{v.emoji} {k}</button>
+                      ))}
+                    </div>
+
+                    {/* Date + Note */}
+                    <div className="clean-row">
+                      <div style={{flex:1}}>
+                        <div className="clean-label">Date</div>
+                        <input className="form-input" type="date" value={form.date}
+                          onChange={e=>updForm('date',e.target.value)} max={today()} style={{fontSize:'13px',padding:'8px 10px'}}/>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div className="clean-label">Note</div>
+                        <input className="form-input" placeholder="Optional..."
+                          value={form.note} onChange={e=>updForm('note',e.target.value)} style={{fontSize:'13px',padding:'8px 10px'}}/>
                       </div>
                     </div>
-                    {/* Filter chips */}
-                    <div className="txn-filter-row">
-                      {['All',...Object.keys(CATEGORIES)].map(cat=>{const cfg=CATEGORIES[cat];const isA=activeFilter===cat;return<button key={cat} className={`txn-chip${isA?' active':''}`} onClick={()=>setFilter(cat)} style={isA&&cfg?{background:cfg.bar,borderColor:cfg.bar,color:'#fff'}:isA?{background:'#1de9b6',borderColor:'#1de9b6',color:'#0a1628'}:{}}>{cfg?cfg.emoji:'📊'} {cat}</button>})}
+
+                    {editingId
+                      ?<div style={{display:'flex',gap:'8px',marginTop:'4px'}}>
+                         <button className="clean-add-btn" onClick={handleUpdate}>✅ Update</button>
+                         <button className="btn btn-cancel" style={{flex:'0 0 80px',margin:0}} onClick={handleCancelEdit}>Cancel</button>
+                       </div>
+                      :<button className="clean-add-btn" onClick={handleAdd}>➕ Add Expense</button>
+                    }
+                  </div>
+
+                  {/* BUDGET + RECENT */}
+                  <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+
+                    {/* Monthly Budget */}
+                    <div className="clean-card">
+                      <div className="clean-card-title">
+                        <span>🎯</span> Monthly Budget
+                        <div style={{marginLeft:'auto',display:'flex',gap:'8px',alignItems:'center'}}>
+                          <input className="form-input" type="number" placeholder="Set..."
+                            value={budgetInput} onChange={e=>setBudgetInput(e.target.value)}
+                            onKeyDown={e=>e.key==='Enter'&&handleBudgetSet()}
+                            style={{width:'90px',padding:'6px 10px',fontSize:'13px'}}/>
+                          <button className="budget-set-btn" onClick={handleBudgetSet}>Set</button>
+                        </div>
+                      </div>
+                      <div className="clean-budget-row">
+                        <div style={{textAlign:'center'}}>
+                          <div className="clean-budget-val" style={{color:'#f87171'}}>{blurAmt(formatINR(monthlySpent))}</div>
+                          <div className="clean-budget-lbl">Spent</div>
+                        </div>
+                        <div style={{textAlign:'center'}}>
+                          <div className="clean-budget-pct" style={{color:budgetStatus==='exceeded'?'#f87171':budgetStatus==='warning'?'#fbbf24':'#1de9b6'}}>{Math.round(budgetPct)}%</div>
+                          <div className="clean-budget-lbl">Used</div>
+                        </div>
+                        <div style={{textAlign:'center'}}>
+                          <div className="clean-budget-val" style={{color:remaining<0?'#f87171':'#1de9b6'}}>{blurAmt(formatINR(Math.abs(remaining)))}</div>
+                          <div className="clean-budget-lbl">{remaining<0?'Over':'Left'}</div>
+                        </div>
+                      </div>
+                      <div className="clean-bar-track">
+                        <div className="clean-bar-fill" style={{width:`${Math.min(budgetPct,100)}%`,background:budgetStatus==='exceeded'?'#f87171':budgetStatus==='warning'?'#fbbf24':'#1de9b6'}}/>
+                      </div>
+                      <div className={`clean-budget-status ${budgetStatus}`}>
+                        {budgetStatus==='exceeded'?`🚨 Over by ${formatINR(Math.abs(remaining))}`:budgetStatus==='warning'?`⚠️ Only ${Math.round(100-budgetPct)}% left`:`✅ ${formatINR(remaining)} available`}
+                      </div>
                     </div>
-                    {/* Transaction list grouped */}
-                    <div className="txn-list">
-                      {(()=>{
-                        if(!visible.length) return <div style={{textAlign:'center',padding:'20px',color:'#6a9bb8',fontSize:'12px'}}>{search?'No matches':'No transactions'}</div>
-                        const ts=today(),ys=new Date(Date.now()-86400000).toISOString().slice(0,10),groups={}
-                        visible.forEach(e=>{const lb=e.date===ts?'TODAY':e.date===ys?'YESTERDAY':new Date(e.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'}).toUpperCase();if(!groups[lb])groups[lb]=[];groups[lb].push(e)})
-                        return Object.entries(groups).map(([lb,exps])=><div key={lb}>
-                          <div className="txn-date-row"><span>{lb}</span><span style={{fontFamily:'var(--font-mono)',fontSize:'11px'}}>{formatINR(exps.reduce((s,e)=>s+e.amount,0))}</span></div>
-                          {exps.map(exp=>{const cfg=CATEGORIES[exp.category]||CATEGORIES.Other;return(
-                            <div key={exp.id} className={`txn-row${removing===exp.id?' removing':''}`}>
-                              <div className="txn-icon" style={{background:cfg.bar+'22'}}>{cfg.emoji}</div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:'13px',fontWeight:700,color:'#e8f4f8',marginBottom:'2px'}}>{exp.title}</div>
-                                <div style={{display:'flex',alignItems:'center',gap:'5px'}}><span style={{fontSize:'10px',fontWeight:700,padding:'1px 7px',borderRadius:'999px',background:cfg.bar+'22',color:cfg.bar}}>{cfg.emoji} {exp.category}</span>{exp.note&&<span style={{fontSize:'10px',color:'#6a9bb8',fontStyle:'italic'}}>{exp.note}</span>}</div>
+
+                    {/* Recent Transactions */}
+                    <div className="clean-card" style={{flex:1}}>
+                      <div className="clean-card-title"><span>🧾</span> Recent Transactions</div>
+                      {visible.slice(0,5).length===0
+                        ?<div style={{textAlign:'center',padding:'24px',color:'#6a9bb8',fontSize:'13px'}}>No transactions yet — add your first! 👆</div>
+                        :visible.slice(0,5).map(exp=>{
+                          const cfg=CATEGORIES[exp.category]||CATEGORIES.Other
+                          return(
+                            <div key={exp.id} className={`clean-txn${removing===exp.id?' removing':''}`}>
+                              <div className="clean-txn-icon" style={{background:cfg.bar+'18',color:cfg.bar}}>{cfg.emoji}</div>
+                              <div className="clean-txn-info">
+                                <div className="clean-txn-title">{exp.title}</div>
+                                <div className="clean-txn-meta">{new Date(exp.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} · {exp.category}</div>
                               </div>
-                              <div style={{textAlign:'right'}}>
-                                <div style={{fontSize:'14px',fontWeight:800,fontFamily:'var(--font-mono)',color:'#f87171'}}>-{blurAmt(formatINR(exp.amount))}</div>
-                                <div style={{display:'flex',gap:'3px',justifyContent:'flex-end',marginTop:'3px',opacity:0}} className="txn-row-actions"><button onClick={()=>handleEditStart(exp)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'12px'}}>✏️</button><button onClick={()=>handleDelete(exp.id)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'12px'}}>🗑️</button></div>
+                              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                                <div className="clean-txn-amt" style={{color:cfg.bar}}>-{blurAmt(formatINR(exp.amount))}</div>
+                                <button onClick={()=>handleDelete(exp.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#6a9bb8',fontSize:'13px',opacity:0.6,padding:'2px'}}>🗑️</button>
                               </div>
                             </div>
-                          )})}
-                        </div>)
-                      })()}
+                          )
+                        })
+                      }
+                      {expenses.length>5&&(
+                        <button className="view-all-btn" onClick={()=>setShowReports(true)}>
+                          View all {expenses.length} transactions →
+                        </button>
+                      )}
                     </div>
-                    <div className="txn-footer-row">
-                      <span style={{fontSize:'12px',color:'#6a9bb8'}}>{visible.length} transactions</span>
-                      <span style={{fontSize:'12px',color:'#6a9bb8'}}>Total: {blurAmt(formatINR(visible.reduce((s,e)=>s+e.amount,0)))}</span>
-                      <span style={{fontSize:'12px',color:'#6a9bb8'}}>Avg: {blurAmt(formatINR(visible.length?Math.round(visible.reduce((s,e)=>s+e.amount,0)/visible.length):0))}</span>
-                    </div>
-                    <button className="view-all-btn" onClick={()=>setShowReports(true)}>View All Transactions →</button>
                   </div>
                 </div>
               </div>
+            )}
 
-            </>)}
 
             {activeTab==='emi'&&<div className="emi-theme"><EMILoansTab loans={loans} schemes={schemes} addLoan={fs.addLoan} updateLoan={fs.updateLoan} deleteLoan={fs.deleteLoan} addScheme={fs.addScheme} updateScheme={fs.updateScheme} deleteScheme={fs.deleteScheme} showToast={showToast} addNotif={addNotif} onConfetti={onConfetti}/></div>}
             {activeTab==='lent'&&<div className="lent-theme"><LentTab lentList={lentList} addLent={fs.addLent} updateLent={fs.updateLent} deleteLent={fs.deleteLent} showToast={showToast} addNotif={addNotif} onConfetti={onConfetti}/></div>}
@@ -2141,14 +2087,11 @@ Rules: Extract amount (convert words like "two hundred" to 200), guess category 
         <div className="mobile-bottom-nav">
           <button className={`mob-nav-item${activeTab==='dashboard'?' active':''}`} onClick={()=>setActiveTab('dashboard')}>
             <span className="mob-nav-icon">🏠</span>
-            <span className="mob-nav-label">Dashboard</span>
+            <span className="mob-nav-label">Home</span>
           </button>
           <button className={`mob-nav-item${activeTab==='emi'?' active':''}`} onClick={()=>setActiveTab('emi')}>
             <span className="mob-nav-icon">💳</span>
             <span className="mob-nav-label">EMI</span>
-          </button>
-          <button className="mob-nav-item mob-nav-add" onClick={()=>{setActiveTab('dashboard');setTimeout(()=>document.querySelector('.quick-amount-input')?.focus(),100)}}>
-            <span className="mob-nav-icon">➕</span>
           </button>
           <button className={`mob-nav-item${activeTab==='lent'?' active':''}`} onClick={()=>setActiveTab('lent')}>
             <span className="mob-nav-icon">🤝</span>
@@ -2157,6 +2100,10 @@ Rules: Extract amount (convert words like "two hundred" to 200), guess category 
           <button className="mob-nav-item" onClick={()=>setShowReports(true)}>
             <span className="mob-nav-icon">📊</span>
             <span className="mob-nav-label">Reports</span>
+          </button>
+          <button className="mob-nav-item" onClick={()=>setShowSecurity(true)}>
+            <span className="mob-nav-icon">⚙️</span>
+            <span className="mob-nav-label">Settings</span>
           </button>
         </div>
         </div>
